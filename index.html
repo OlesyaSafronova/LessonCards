@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Карточки уроков</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap">
+<style>
+[hidden]{display:none!important}
+:root{
+  --bg:#F1F3F9; --surface:#FFFFFF; --fg:#121A44; --muted:#5D6488; --line:#DCE0EE;
+  --accent:#4F63F0; --accent-fg:#FFFFFF; --accent-soft:#E6E9FF;
+  --ok:#1E9E62; --bad:#D9483B; --bad-soft:#FBE3E0; --old:#8A90B0;
+  --font:"Onest",-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0C1029; --surface:#161B3A; --fg:#E8EBFA; --muted:#A0A7CC; --line:#2A3160;
+  --accent:#7F8FFF; --accent-fg:#0C1029; --accent-soft:#252C63;
+  --ok:#4CC98C; --bad:#FF7B6E; --bad-soft:#47201C; --old:#6C7399; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1029; --surface:#161B3A; --fg:#E8EBFA; --muted:#A0A7CC; --line:#2A3160;
+  --accent:#7F8FFF; --accent-fg:#0C1029; --accent-soft:#252C63;
+  --ok:#4CC98C; --bad:#FF7B6E; --bad-soft:#47201C; --old:#6C7399; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:1440px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.brand{font-weight:700;font-size:17px}
+.seg{display:inline-flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;flex-wrap:wrap}
+.seg button{border:0;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;cursor:pointer}
+.seg button[aria-selected="true"],.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+h1,h2{text-wrap:balance;margin:0}
+h1{font-size:28px;line-height:1.2;font-weight:700}
+h2{font-size:20px;line-height:1.3;font-weight:700}
+p{margin:0}
+.muted{color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px}
+.intro{display:grid;gap:16px;max-width:680px;margin-inline:auto}
+.intro ol{margin:0;padding-left:20px;display:grid;gap:6px}
+.btn{appearance:none;border:0;background:var(--accent);color:var(--accent-fg);font:inherit;font-weight:600;padding:11px 20px;border-radius:10px;cursor:pointer;min-height:44px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:var(--accent-soft);color:var(--fg)}
+.btn:focus-visible,.chip:focus-visible,.seg button:focus-visible,.shot:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.notice{font-size:13px;padding:10px 12px;border-radius:10px;background:var(--accent-soft)}
+.notice.bad{background:var(--bad-soft)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* Панель вопроса */
+.task{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 20px;display:grid;gap:12px;margin-bottom:16px;box-shadow:0 6px 20px -12px rgba(11,19,80,.35)}
+.task-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.step{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.task h2{font-size:19px;margin-top:2px}
+.controls{display:grid;gap:10px}
+.answers{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:14px;font-weight:600;min-height:42px;padding:8px 16px;border-radius:10px;cursor:pointer;font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.chip:disabled{opacity:.45;cursor:not-allowed}
+.scale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;max-width:640px}
+.scale .chip{display:grid;gap:0;padding:8px 4px;line-height:1.25}
+.scale .chip small{font-weight:500;font-size:12px;opacity:.8}
+textarea{width:100%;min-height:96px;font:inherit;font-size:16px;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);resize:vertical}
+.hint{font-size:13px;color:var(--muted)}
+
+/* Макеты */
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.variant{display:grid;gap:8px}
+.vlabel{font-weight:700;font-size:16px;display:flex;justify-content:space-between;align-items:baseline}
+.vlabel small{font-weight:500;font-size:12px;color:var(--muted)}
+.shot{display:block;padding:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#F4F6FC;cursor:zoom-in;width:100%;line-height:0}
+.shot img{width:100%;height:auto;display:block;user-select:none;-webkit-user-select:none;-webkit-user-drag:none}
+
+/* Увеличение */
+.zoom{position:fixed;inset:0;z-index:50;background:rgba(8,12,40,.86);overflow:auto;cursor:zoom-out;padding:56px 16px 24px}
+.zoom img{display:block;margin:0 auto;max-width:none;border-radius:10px}
+.zoom .ztitle{position:fixed;top:12px;left:16px;right:16px;display:flex;justify-content:space-between;color:#fff;font-weight:700;pointer-events:none}
+
+/* Телефон: переключатель А/Б, ответ в нижней панели */
+.is-mobile .wrap{padding-top:12px}
+.is-mobile h1{font-size:23px}
+.is-mobile .card{padding:18px}
+.is-mobile .task{padding:10px 14px;gap:8px;margin-inline:-4px}
+.is-mobile .task h2{font-size:15px;line-height:1.35}
+.is-mobile .switch{display:grid;grid-template-columns:1fr 1fr}
+.is-mobile .switch button{font-size:15px;padding:8px 0}
+.is-mobile .switch button .seen{font-size:11px;font-weight:500;opacity:.8;margin-left:4px}
+.is-mobile .mob-shot{border-radius:var(--r);overflow:hidden;border:1px solid var(--line);line-height:0;max-width:430px;margin:0 auto}
+.is-mobile .mob-shot img{width:100%;height:auto;display:block}
+.is-mobile .controls{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -8px 24px -14px rgba(11,19,80,.45);padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.is-mobile .answers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.is-mobile .answers .chip{padding:8px 4px}
+.is-mobile .scale{gap:4px}
+.is-mobile .scale .chip small{font-size:11px}
+.is-mobile .controls .btn{width:100%}
+.is-mobile textarea{min-height:72px}
+
+/* Результаты */
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.kpi .v{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:13px;color:var(--muted)}
+.qres{display:grid;gap:14px;margin-bottom:16px}
+.stack{display:flex;height:28px;border-radius:8px;overflow:hidden;background:var(--bg)}
+.stack div{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;min-width:0;white-space:nowrap;overflow:hidden}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.legend b{color:var(--fg);font-variant-numeric:tabular-nums}
+.dist{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;align-items:end;height:140px}
+.dist .col{display:grid;gap:4px;align-content:end;height:100%;text-align:center;font-size:12px;color:var(--muted)}
+.dist .bar{background:var(--accent);border-radius:6px 6px 0 0;min-height:2px}
+.dist b{color:var(--fg);font-variant-numeric:tabular-nums}
+.empty{padding:32px;text-align:center;color:var(--muted)}
+.comments ul{margin:0;padding:0;display:grid;gap:8px}
+.comments li{background:var(--bg);border-radius:10px;padding:10px 12px;list-style:none;font-size:14px}
+.comments li small{display:block;color:var(--muted);font-size:12px}
+.comments li.flag{box-shadow:inset 3px 0 0 var(--accent)}
+@media (max-width:720px){h1{font-size:23px}.pair{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Карточки уроков</div>
+    <div class="seg" id="tabs" role="tablist" hidden>
+      <button role="tab" id="tab-survey" aria-selected="true">Опрос</button>
+      <button role="tab" id="tab-results" aria-selected="false">Результаты</button>
+    </div>
+  </header>
+  <main id="survey"></main>
+  <main id="results" hidden></main>
+</div>
+
+<script>
+/* ================= Настройки ================= */
+
+// URL веб-приложения Google Apps Script (Развернуть → Веб-приложение → URL, заканчивается на /exec).
+// Пока пусто — опрос работает в демо-режиме: ответы хранятся только в этом браузере.
+const SHEETS_URL = "https://script.google.com/macros/s/AKfycbxKKbrPSI4ONQa674twAB0lU6ANI2clKRwbhCQzW8EzbqwVv2FGBCjqYaTeQXpE2DbRzA/exec";
+const SURVEY = "cards-ab-v4";
+
+// Макеты: Figma «было-стало (1)» 1199:43140, кроп списка карточек, экспорт 2x.
+// old = «было» (1199:41969, 1199:42356), new = «стало» (1199:35665, 1199:36094).
+const MOCKS = {
+  desktop: {old:"old-desktop.png", new:"new-desktop.png", w:772, h:760},
+  mobile:  {old:"old-mobile.png",  new:"new-mobile.png",  w:375, h:724},
+};
+
+const CHOICES = [["A","Вариант А"],["B","Вариант Б"],["same","Одинаково"]];
+const SCALE = [[1,"точно А"],[2,"скорее А"],[3,"без разницы"],[4,"скорее Б"],[5,"точно Б"]];
+const QUESTIONS = [
+  {key:"q1", kind:"choice", title:"В каком варианте легче понять, сколько уроков пройдено?"},
+  {key:"q2", kind:"choice", title:"В каком варианте легче найти урок, который досмотрен не до конца?"},
+  {key:"q3", kind:"choice", title:"В каком варианте легче найти урок, в котором письменное задание отправлено на работу над ошибками?"},
+  {key:"q4", kind:"scale",  title:"Какой вариант списка уроков кажется вам удобнее?"},
+  {key:"q5", kind:"text",   title:"Что повлияло на ваш выбор? Что было непонятно в любом из вариантов?"},
+];
+
+/* ================= Утилиты ================= */
+
+const params = new URLSearchParams(location.search);
+const RESULTS_KEY = params.get("results");
+const USE_SHEETS = /^https:\/\/script\.google\.com\//.test(SHEETS_URL);
+const DEMO = !USE_SHEETS;
+const $ = (s, r=document) => r.querySelector(s);
+const h = (tag, attrs={}, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)) {
+    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (v === true) el.setAttribute(k, "");
+    else if (v !== false && v != null) el.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k != null) el.append(k.nodeType ? k : document.createTextNode(k));
+  return el;
+};
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch { return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch {} },
+  del(k){ try { localStorage.removeItem(k); } catch {} },
+};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ================= Устройство ================= */
+// Телефон: меньшая сторона экрана < 600px или узкое окно. Планшет и компьютер получают десктопные макеты.
+// Проверить другую версию: ?device=mobile или ?device=desktop.
+function detectDevice() {
+  const forced = params.get("device");
+  if (forced === "mobile" || forced === "desktop") return forced;
+  const minSide = Math.min(screen.width || innerWidth, screen.height || innerHeight);
+  return (minSide < 600 || innerWidth < 640) ? "mobile" : "desktop";
+}
+const DEVICE = detectDevice(); // фиксируем на старте: поворот экрана не меняет макет посреди опроса
+document.documentElement.classList.toggle("is-mobile", DEVICE === "mobile");
+
+/* ================= Порядок вариантов ================= */
+// Порядок фиксированный для всех: «Вариант А» = было, «Вариант Б» = стало.
+// Каждый проходит опрос один раз, поэтому варианты между респондентами не тасуются.
+// Для проверки: ?new=a или ?new=b.
+const DEFAULT_NEW_IS = "B";
+function pickOrder() {
+  const forced = (params.get("new") || "").toUpperCase();
+  return (forced === "A" || forced === "B") ? forced : DEFAULT_NEW_IS;
+}
+const NEW_IS = pickOrder();
+const srcFor = letter => MOCKS[DEVICE][letter === NEW_IS ? "new" : "old"];
+// Ответ респондента (А/Б) → что он выбрал на самом деле (стало/было).
+const toVersion = c => c === "same" ? "same" : (c === NEW_IS ? "new" : "old");
+// Шкала 1–5 (1 = точно А) → шкала «за новый»: 5 = точно новый, 1 = точно старый.
+const toNewScore = v => NEW_IS === "B" ? v : 6 - v;
+
+/* ================= Состояние опроса ================= */
+const PERSONAL_ID = (params.get("r") || "").replace(/[^\w-]/g, "").slice(0, 64);
+const DONE_KEY = "survey-v4-done" + (PERSONAL_ID ? "-" + PERSONAL_ID : "");
+const alreadyDone = store.get(DONE_KEY) === "1";
+
+let step = alreadyDone ? QUESTIONS.length : -1; // -1 старт, 0..4 вопросы, 5 готово
+const answers = {};
+let t0 = 0, tStart = 0;
+let mobView = "A";               // какая вкладка открыта на телефоне
+const seen = {A:false, B:false}; // смотрел ли респондент оба варианта (телефон)
+let switches = 0, zooms = 0;
+
+/* ---------- Макеты ---------- */
+
+function openZoom(letter) {
+  zooms++;
+  const m = MOCKS[DEVICE];
+  const img = h("img", {src:srcFor(letter), alt:"Вариант " + (letter === "A" ? "А" : "Б") + " крупно",
+    style:`width:${Math.min(m.w * 1.6, 1240)}px`});
+  const ov = h("div", {class:"zoom", role:"dialog", "aria-modal":"true", "aria-label":"Увеличенный макет", tabindex:"-1"},
+    h("div", {class:"ztitle"}, h("span", {}, "Вариант " + (letter === "A" ? "А" : "Б")), h("span", {}, "Закрыть ✕")), img);
+  const close = () => { ov.remove(); removeEventListener("keydown", onKey); };
+  const onKey = e => { if (e.key === "Escape") close(); };
+  ov.addEventListener("click", close);
+  addEventListener("keydown", onKey);
+  document.body.append(ov);
+  ov.focus();
+}
+
+function desktopPair() {
+  const m = MOCKS.desktop;
+  const col = letter => h("div", {class:"variant"},
+    h("div", {class:"vlabel"}, "Вариант " + (letter === "A" ? "А" : "Б"), h("small", {}, "нажмите, чтобы увеличить")),
+    h("button", {class:"shot", type:"button", "aria-label":`Увеличить вариант ${letter === "A" ? "А" : "Б"}`, onclick: () => openZoom(letter)},
+      h("img", {src:srcFor(letter), width:m.w, height:m.h, alt:`Вариант ${letter === "A" ? "А" : "Б"}: список уроков курса`, draggable:"false"})));
+  return h("div", {class:"pair"}, col("A"), col("B"));
+}
+
+function mobileSwitch() {
+  const sw = h("div", {class:"seg switch", role:"tablist", "aria-label":"Вариант макета"});
+  for (const l of ["A","B"]) {
+    sw.append(h("button", {role:"tab", "aria-selected": String(mobView === l), onclick: () => {
+      if (mobView !== l) { switches++; mobView = l; seen[l] = true; renderSurvey(); window.scrollTo({top:0}); }
+    }}, "Вариант " + (l === "A" ? "А" : "Б")));
+  }
+  return sw;
+}
+
+function mobileShot() {
+  const m = MOCKS.mobile;
+  return h("div", {class:"mob-shot"},
+    h("img", {src:srcFor(mobView), width:m.w, height:m.h, alt:`Вариант ${mobView === "A" ? "А" : "Б"}: список уроков курса`, draggable:"false"}));
+}
+
+/* ---------- Ответы ---------- */
+
+function answerControls(q) {
+  const a = answers[q.key] ||= {};
+  const needBoth = DEVICE === "mobile" && !(seen.A && seen.B);
+  const pick = v => { const ms = Math.round(performance.now() - t0); answers[q.key] = {...a, answer:v, ms: a.ms ?? ms, changes:(a.changes||0) + (a.answer != null ? 1 : 0)}; renderControls(q); };
+  if (q.kind === "choice") {
+    return h("div", {class:"answers", role:"group", "aria-label":"Ваш ответ"},
+      CHOICES.map(([v, t]) => h("button", {class:"chip", "aria-pressed": String(a.answer === v), disabled: needBoth, onclick: () => pick(v)}, t)));
+  }
+  if (q.kind === "scale") {
+    return h("div", {class:"scale", role:"group", "aria-label":"Оценка от 1 до 5"},
+      SCALE.map(([v, t]) => h("button", {class:"chip", "aria-pressed": String(a.answer === v), disabled: needBoth, onclick: () => pick(v)}, String(v), h("small", {}, t))));
+  }
+  const ta = h("textarea", {id:"comment", "aria-label":q.title, placeholder:"Например: что сразу бросилось в глаза, что сбивало с толку"});
+  ta.value = a.answer || "";
+  ta.addEventListener("input", () => { a.answer = ta.value; });
+  return ta;
+}
+
+function renderControls(q) {
+  const slot = $("#controls");
+  if (!slot) return;
+  const last = step === QUESTIONS.length - 1;
+  const a = answers[q.key] || {};
+  const needBoth = DEVICE === "mobile" && !(seen.A && seen.B);
+  const ready = q.kind === "text" || a.answer != null;
+  slot.replaceChildren(answerControls(q));
+  if (needBoth) slot.append(h("p", {class:"hint"}, "Сначала посмотрите оба варианта: переключатель вверху экрана."));
+  else if (q.kind === "text") slot.append(h("p", {class:"hint"}, "Необязательно, но очень поможет."));
+  slot.append(h("div", {id:"save-msg"}));
+  const btn = h("button", {class:"btn", id:"next", disabled: !ready, onclick: () => last ? submit() : go(step + 1)}, last ? "Отправить ответы" : "Дальше");
+  if (DEVICE === "desktop") { const old = $("#next"); old ? old.replaceWith(btn) : $(".task-head").append(btn); }
+  else slot.append(btn);
+  padForDock();
+}
+
+// На телефоне панель ответа прибита к низу: отступ снизу, чтобы она не закрывала конец макета.
+function padForDock() {
+  if (DEVICE !== "mobile") return;
+  const dock = $("#survey #controls");
+  $(".wrap").style.paddingBottom = dock && !$("#survey").hidden ? (dock.offsetHeight + 24) + "px" : "";
+}
+
+function renderSurvey() {
+  const root = $("#survey");
+  root.replaceChildren();
+  if (step === -1) {
+    root.append(h("section", {class:"card intro"},
+      h("h1", {}, "Какой список уроков удобнее?"),
+      h("p", {class:"muted"}, "Мы покажем два варианта страницы со списком уроков и зададим 5 коротких вопросов. Это займёт 2–3 минуты. Правильных и неправильных ответов нет: нам важно ваше мнение."),
+      h("ol", {},
+        h("li", {}, "Представьте, что вы ученик и открыли свой курс."),
+        DEVICE === "mobile"
+          ? h("li", {}, "Переключайтесь между вариантами А и Б кнопками вверху экрана.")
+          : h("li", {}, "Нажмите на вариант, чтобы рассмотреть его крупнее."),
+        h("li", {}, "Отвечайте так, как кажется с первого взгляда.")),
+      h("div", {class:"row"}, h("button", {class:"btn", onclick: () => { tStart = performance.now(); seen.A = true; go(0); }}, "Начать")),
+      DEMO ? h("p", {class:"notice"}, "Демо-режим: таблица не подключена, ответы сохраняются только в этом браузере.") : null));
+    padForDock();
+    return;
+  }
+  if (step < QUESTIONS.length) {
+    const q = QUESTIONS[step];
+    const head = h("div", {class:"task-head"},
+      h("div", {}, h("div", {class:"step"}, `Вопрос ${step + 1} из ${QUESTIONS.length}`), h("h2", {}, q.title)));
+    const task = h("section", {class:"task", "aria-live":"polite"}, head);
+    const controls = h("div", {id:"controls", class:"controls"});
+    if (DEVICE === "desktop") {
+      task.append(controls);
+      root.append(task, desktopPair());
+    } else {
+      task.append(mobileSwitch());
+      root.append(task, mobileShot(), controls);
+    }
+    renderControls(q);
+    return;
+  }
+  const done = h("section", {class:"card intro"},
+    h("h1", {}, alreadyDone ? "Вы уже прошли этот опрос" : "Спасибо! Ответы отправлены"),
+    h("p", {class:"muted"}, alreadyDone ? "Мы получили ваши ответы, пройти опрос ещё раз нельзя. Спасибо за помощь!" : "Ваши ответы помогут сделать список уроков понятнее."));
+  if (DEMO) done.append(h("div", {class:"row"},
+    h("button", {class:"btn ghost", onclick: () => { store.del(DONE_KEY); location.reload(); }}, "Демо: пройти заново"),
+    h("a", {class:"btn ghost", href:"?results=demo", style:"text-decoration:none"}, "Демо: результаты")));
+  root.append(done);
+  padForDock();
+}
+
+function go(n) { step = n; t0 = performance.now(); renderSurvey(); window.scrollTo({top:0}); }
+
+/* ================= Отправка ================= */
+function anonId() {
+  if (PERSONAL_ID) return "p-" + PERSONAL_ID;
+  let id = store.get("survey-anon-id");
+  if (!id) { id = "anon-" + Math.random().toString(36).slice(2, 10); store.set("survey-anon-id", id); }
+  return id;
+}
+
+function buildRecord() {
+  const r = {
+    v: 1, survey: SURVEY, device: DEVICE, newIs: NEW_IS,
+    submittedAt: new Date().toISOString(),
+    respondent: anonId(),
+    screen: `${innerWidth}x${innerHeight}`,
+    totalMs: Math.round(performance.now() - tStart),
+    switches, zooms,
+  };
+  for (const q of QUESTIONS.slice(0, 3)) {
+    const a = answers[q.key] || {};
+    r[q.key] = {answer: a.answer ?? null, version: a.answer ? toVersion(a.answer) : null, ms: a.ms ?? null, changes: a.changes || 0};
+  }
+  const a4 = answers.q4 || {};
+  r.q4 = {answer: a4.answer ?? null, newScore: a4.answer ? toNewScore(a4.answer) : null, ms: a4.ms ?? null, changes: a4.changes || 0};
+  r.q5 = {answer: (($("#comment") || {}).value || (answers.q5 || {}).answer || "").trim().slice(0, 2000)};
+  return r;
+}
+
+async function postOnce(body) {
+  const res = await fetch(SHEETS_URL, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body});
+  return res.json();
+}
+
+async function submit() {
+  const btn = $("#next"); btn.disabled = true; btn.textContent = "Отправляем…";
+  const record = buildRecord();
+  const body = JSON.stringify(record);
+  let saved = false, error = "network";
+
+  if (DEMO) {
+    const rows = JSON.parse(store.get("survey-v4-demo-rows") || "[]");
+    rows.push(record);
+    store.set("survey-v4-demo-rows", JSON.stringify(rows));
+    saved = true;
+  } else {
+    // До 4 попыток с паузами. Повтор безопасен: таблица отбрасывает дубль того же респондента
+    // и отвечает «duplicate», что тоже значит «ответ уже записан».
+    for (let i = 0; i < 4 && !saved; i++) {
+      if (i) { btn.textContent = `Отправляем… (попытка ${i + 1})`; await sleep(1500 * i + Math.random() * 1000); }
+      try {
+        const data = await postOnce(body);
+        if (data.ok || data.error === "duplicate") saved = true;
+        else { error = data.error || "unknown"; if (error !== "busy") break; }
+      } catch (e) { error = "network"; console.warn("[survey] send failed", e); }
+    }
+  }
+
+  if (!saved) {
+    store.set("survey-v4-last-response", body);
+    const why = {
+      network: "Не удалось отправить ответы. Проверьте подключение к интернету и нажмите «Отправить ещё раз».",
+      busy: "Сейчас много ответов одновременно. Подождите несколько секунд и нажмите «Отправить ещё раз».",
+      no_sheet: "Таблица пока не готова принимать ответы. Сообщите, пожалуйста, организатору опроса (код: no_sheet).",
+    }[error] || `Ответы не сохранились. Сообщите, пожалуйста, организатору опроса (код: ${error}).`;
+    $("#save-msg").replaceChildren(h("p", {class:"notice bad"}, why));
+    btn.disabled = false; btn.textContent = "Отправить ещё раз";
+    padForDock();
+    return;
+  }
+  store.set(DONE_KEY, "1");
+  go(QUESTIONS.length);
+}
+
+/* ================= Результаты (?results=КЛЮЧ, в демо — ?results=demo) ================= */
+let cache = null;
+let rDev = ["all","desktop","mobile"].includes(store.get("survey-v4-r-dev")) ? store.get("survey-v4-r-dev") : "all";
+const DEVICE_LABEL = {desktop:"Десктоп", mobile:"Мобилка"};
+const VER = {new:["Стало","var(--ok)"], old:["Было","var(--old)"], same:["Одинаково","var(--accent)"]};
+
+function initTabs() {
+  if (!RESULTS_KEY || (DEMO && RESULTS_KEY !== "demo")) return;
+  $("#tabs").hidden = false;
+  const show = which => {
+    $("#tab-survey").setAttribute("aria-selected", String(which === "survey"));
+    $("#tab-results").setAttribute("aria-selected", String(which === "results"));
+    $("#survey").hidden = which !== "survey";
+    $("#results").hidden = which !== "results";
+    if (which === "results") { $(".wrap").style.paddingBottom = ""; load(); } else padForDock();
+  };
+  $("#tab-survey").onclick = () => show("survey");
+  $("#tab-results").onclick = () => show("results");
+  show("results");
+}
+
+async function load(force) {
+  if (cache && !force) { renderResults(); return; }
+  if (DEMO) { cache = JSON.parse(store.get("survey-v4-demo-rows") || "[]"); renderResults(); return; }
+  renderResults("loading");
+  try {
+    const data = await (await fetch(`${SHEETS_URL}?key=${encodeURIComponent(RESULTS_KEY)}`)).json();
+    if (data.error) { renderResults("error", data.error === "forbidden" ? "неверный ключ в ссылке" : data.error); return; }
+    cache = data.rows || [];
+    renderResults();
+  } catch { renderResults("error", "таблица недоступна"); }
+}
+
+const pct = (a, b) => b ? Math.round(a / b * 100) + "%" : "—";
+const fmt = x => x == null ? "—" : x.toFixed(1).replace(".", ",");
+
+function seg(options, value, onPick, label) {
+  return h("div", {class:"seg", role:"group", "aria-label":label}, options.map(([v, t]) =>
+    h("button", {"aria-pressed": String(v === value), onclick: () => onPick(v)}, t)));
+}
+
+function stackBar(counts, total) {
+  return h("div", {}, h("div", {class:"stack", role:"img", "aria-label":Object.keys(VER).map(k => `${VER[k][0]} ${pct(counts[k], total)}`).join(", ")},
+    ["new","same","old"].filter(k => counts[k]).map(k => h("div", {style:`width:${counts[k] / total * 100}%;background:${VER[k][1]}`}, pct(counts[k], total)))),
+    h("div", {class:"legend", style:"margin-top:8px"}, ["new","same","old"].map(k =>
+      h("span", {}, h("i", {style:`background:${VER[k][1]}`}), `${VER[k][0]}: `, h("b", {}, `${counts[k]} (${pct(counts[k], total)})`)))));
+}
+
+function renderResults(state, err) {
+  const root = $("#results");
+  root.replaceChildren(h("div", {class:"filters"},
+    seg([["all","Все устройства"],["desktop","Десктоп"],["mobile","Мобилка"]], rDev, v => { rDev = v; store.set("survey-v4-r-dev", v); renderResults(); }, "Устройство"),
+    h("button", {class:"btn ghost", onclick: () => load(true)}, "Обновить"),
+    h("button", {class:"btn ghost", onclick: exportCsv, disabled: !(cache || []).length}, "Скачать CSV")));
+  if (state === "loading") { root.append(h("div", {class:"card empty"}, "Загружаем ответы…")); return; }
+  if (state === "error") { root.append(h("div", {class:"card empty"}, "Не удалось прочитать ответы: " + err)); return; }
+  const all = cache || [];
+  const rows = rDev === "all" ? all : all.filter(r => r.device === rDev);
+  const n = rows.length;
+  if (!n) { root.append(h("div", {class:"card empty"}, "Пока нет ответов в этом срезе.")); return; }
+
+  const nD = all.filter(r => r.device === "desktop").length, nM = all.filter(r => r.device === "mobile").length;
+  const scores = rows.map(r => r.q4?.newScore).filter(Number.isFinite);
+  const avgNew = scores.length ? scores.reduce((s, v) => s + v, 0) / scores.length : null;
+  const newA = rows.filter(r => r.newIs === "A").length;
+  // Смещение к позиции: как часто выбирали «Вариант А» (слева / первым) в вопросах 1–3, не считая «Одинаково».
+  let left = 0, picked = 0;
+  for (const r of rows) for (const k of ["q1","q2","q3"]) { const a = r[k]?.answer; if (a === "A" || a === "B") { picked++; if (a === "A") left++; } }
+
+  root.append(h("div", {class:"kpis"},
+    h("div", {class:"kpi"}, h("div", {class:"v"}, String(n)), h("div", {class:"l"}, rDev === "all" ? `респондентов · десктоп ${nD}, мобилка ${nM}` : "респондентов")),
+    h("div", {class:"kpi"}, h("div", {class:"v"}, fmt(avgNew)), h("div", {class:"l"}, "общее удобство за «стало», 1–5 (3 = без разницы)")),
+    h("div", {class:"kpi"}, h("div", {class:"v"}, `${newA} / ${n - newA}`), h("div", {class:"l"}, "«стало» показали как А / как Б")),
+    h("div", {class:"kpi"}, h("div", {class:"v"}, pct(left, picked)), h("div", {class:"l"}, "выборов «Вариант А» в вопросах 1–3 (проверка смещения к первому)"))));
+
+  QUESTIONS.slice(0, 3).forEach((q, i) => {
+    const counts = {new:0, old:0, same:0};
+    let total = 0;
+    for (const r of rows) { const v = r[q.key]?.version; if (v) { counts[v]++; total++; } }
+    root.append(h("section", {class:"card qres"},
+      h("div", {}, h("div", {class:"step"}, `Вопрос ${i + 1}`), h("h2", {}, q.title)),
+      total ? stackBar(counts, total) : h("p", {class:"muted"}, "Нет ответов.")));
+  });
+
+  const dist = [1,2,3,4,5].map(v => scores.filter(s => s === v).length);
+  const max = Math.max(1, ...dist);
+  const lbl = ["точно было","скорее было","без разницы","скорее стало","точно стало"];
+  root.append(h("section", {class:"card qres"},
+    h("div", {}, h("div", {class:"step"}, "Вопрос 4"), h("h2", {}, QUESTIONS[3].title)),
+    h("p", {class:"muted"}, "Ответы пересчитаны по версиям: шкала у всех от «точно было» до «точно стало», независимо от того, кому какой макет достался как А."),
+    h("div", {class:"dist"}, dist.map((c, i) => h("div", {class:"col"},
+      h("b", {}, `${c} · ${pct(c, scores.length)}`),
+      h("div", {class:"bar", style:`height:${c / max * 90}px`}),
+      h("span", {}, `${i + 1} — ${lbl[i]}`))))));
+
+  // Вопрос 5. Подсвечиваем ответы, где упоминают урок №2, тест 14% или галочки (см. survey-questions.md).
+  const flag = t => /галоч|14\s*%|тест.{0,20}14|урок\w*\s*(№\s*)?2\b|втор/i.test(t);
+  const comments = rows.filter(r => r.q5?.answer).sort((a, b) => (b.submittedAt || "").localeCompare(a.submittedAt || ""));
+  const flagged = comments.filter(r => flag(r.q5.answer)).length;
+  const verdict = r => { const s = r.q4?.newScore; return s == null ? "" : s > 3 ? " · за «стало»" : s < 3 ? " · за «было»" : " · без разницы"; };
+  root.append(h("section", {class:"card qres comments"},
+    h("div", {}, h("div", {class:"step"}, "Вопрос 5"), h("h2", {}, `Причины выбора (${comments.length})`)),
+    h("p", {class:"muted"}, `Отмечены полосой слева: упоминают урок №2, тест на 14% или галочки — ${flagged}.`),
+    comments.length ? h("ul", {}, comments.map(r => h("li", {class: flag(r.q5.answer) ? "flag" : ""},
+      h("small", {}, (DEVICE_LABEL[r.device] || "") + verdict(r)), r.q5.answer))) : h("p", {class:"muted"}, "Ответов пока нет.")));
+}
+
+function exportCsv() {
+  const all = cache || [];
+  const rows = rDev === "all" ? all : all.filter(r => r.device === rDev);
+  const V = {new:"стало", old:"было", same:"одинаково"};
+  const head = ["submittedAt","device","new_is","q1_answer","q1_version","q2_answer","q2_version","q3_answer","q3_version","q4_answer","q4_new_score","q5_reason","switches","zooms","total_s"];
+  const esc = v => { v = v == null ? "" : String(v); return /[",\n;]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
+  const lines = [head.join(",")];
+  for (const r of rows) lines.push([r.submittedAt, DEVICE_LABEL[r.device], r.newIs,
+    r.q1?.answer, V[r.q1?.version], r.q2?.answer, V[r.q2?.version], r.q3?.answer, V[r.q3?.version],
+    r.q4?.answer, r.q4?.newScore, r.q5?.answer, r.switches, r.zooms, r.totalMs != null ? Math.round(r.totalMs / 1000) : ""].map(esc).join(","));
+  const a = h("a", {href: URL.createObjectURL(new Blob(["﻿" + lines.join("\n")], {type:"text/csv"})), download:`survey-cards-${rDev}.csv`});
+  document.body.append(a); a.click(); a.remove();
+}
+
+renderSurvey();
+initTabs();
+addEventListener("resize", padForDock);
+</script>
+</body>
+</html>
