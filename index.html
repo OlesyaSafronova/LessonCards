@@ -491,16 +491,18 @@ function renderResults(state, err) {
   const nD = all.filter(r => r.device === "desktop").length, nM = all.filter(r => r.device === "mobile").length;
   const scores = rows.map(r => r.q4?.newScore).filter(Number.isFinite);
   const avgNew = scores.length ? scores.reduce((s, v) => s + v, 0) / scores.length : null;
-  const newA = rows.filter(r => r.newIs === "A").length;
-  // Смещение к позиции: как часто выбирали «Вариант А» (слева / первым) в вопросах 1–3, не считая «Одинаково».
-  let left = 0, picked = 0;
-  for (const r of rows) for (const k of ["q1","q2","q3"]) { const a = r[k]?.answer; if (a === "A" || a === "B") { picked++; if (a === "A") left++; } }
+  // Вопросы 1–3 вместе: доля ответов за «стало» и за «одинаково».
+  let total = 0, forNew = 0, same = 0;
+  for (const r of rows) for (const k of ["q1","q2","q3"]) {
+    const v = r[k]?.version; if (!v) continue;
+    total++; if (v === "new") forNew++; else if (v === "same") same++;
+  }
 
   root.append(h("div", {class:"kpis"},
     h("div", {class:"kpi"}, h("div", {class:"v"}, String(n)), h("div", {class:"l"}, rDev === "all" ? `респондентов · десктоп ${nD}, мобилка ${nM}` : "респондентов")),
     h("div", {class:"kpi"}, h("div", {class:"v"}, fmt(avgNew)), h("div", {class:"l"}, "общее удобство за «стало», 1–5 (3 = без разницы)")),
-    h("div", {class:"kpi"}, h("div", {class:"v"}, `${newA} / ${n - newA}`), h("div", {class:"l"}, "«стало» показали как А / как Б")),
-    h("div", {class:"kpi"}, h("div", {class:"v"}, pct(left, picked)), h("div", {class:"l"}, "выборов «Вариант А» в вопросах 1–3 (проверка смещения к первому)"))));
+    h("div", {class:"kpi"}, h("div", {class:"v"}, pct(forNew, total)), h("div", {class:"l"}, "ответов за «стало» в вопросах 1–3")),
+    h("div", {class:"kpi"}, h("div", {class:"v"}, pct(same, total)), h("div", {class:"l"}, "ответов «одинаково» в вопросах 1–3"))));
 
   QUESTIONS.slice(0, 3).forEach((q, i) => {
     const counts = {new:0, old:0, same:0};
